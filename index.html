@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Logbook Kendaraan Pesantren</title>
+<style>
+:root{--bg:#f3f5f2;--card:#fff;--ink:#1c2a26;--mute:#5d6b66;--line:#d5dcd7;--pri:#17594a;--pri2:#e3efe9;--warn:#b45309;--warnbg:#fef3c7;--bad:#b91c1c;--badbg:#fee2e2;--ok:#166534;--okbg:#dcfce7}
+@media(prefers-color-scheme:dark){:root{--bg:#121816;--card:#1b2420;--ink:#e6efeb;--mute:#9db0a9;--line:#32403a;--pri:#5fc2a6;--pri2:#223630;--warn:#fbbf24;--warnbg:#3a2f0b;--bad:#fca5a5;--badbg:#3f1818;--ok:#86efac;--okbg:#12321e}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Segoe UI",system-ui,sans-serif;padding:env(safe-area-inset-top,0) 0 40px}
+main{max-width:820px;margin:0 auto;padding:12px}
+h1{font-size:1.3rem;margin:8px 0 2px}h2{font-size:1.05rem;margin:0 0 10px}
+.sub{color:var(--mute);font-size:.9rem;margin:0 0 12px}
+.tabs{display:flex;gap:8px;margin:10px 0}
+.tabs button{flex:1;padding:12px 8px;border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;font-weight:600;font-size:.95rem}
+.tabs button.on{border-color:var(--pri);background:var(--pri2);color:var(--pri)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin:12px 0}
+.al{padding:10px 12px;border-radius:8px;margin:6px 0;font-size:.95rem;font-weight:500}
+.al.w{background:var(--warnbg);color:var(--warn)}.al.b{background:var(--badbg);color:var(--bad)}.al.g{background:var(--okbg);color:var(--ok)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.stat{border-left:4px solid var(--pri);padding:2px 10px}.stat b{display:block;font-size:1.25rem}.stat span{color:var(--mute);font-size:.85rem}
+label{display:block;font-size:.85rem;color:var(--mute);margin:8px 0 2px}
+input,select,textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.chk{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:4px}.chk label{display:flex;gap:6px;align-items:center;margin:0;color:var(--ink);font-size:.92rem}.chk input{width:auto}
+button.p,button.s,button.d{padding:11px 16px;border-radius:8px;border:0;font-weight:600;font-size:.95rem;margin:10px 8px 0 0}
+button.p{background:var(--pri);color:var(--bg)}button.s{background:var(--pri2);color:var(--pri)}button.d{background:var(--badbg);color:var(--bad);padding:6px 10px;margin:0}
+.scroll{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:.85rem}th,td{border:1px solid var(--line);padding:6px;text-align:left;vertical-align:top}th{background:var(--pri2)}
+summary{font-weight:600;cursor:pointer;padding:4px 0}
+#pa{display:none}
+@media print{@page{size:A4 landscape;margin:10mm}body.pr main{display:none}body.pr #pa{display:block;color:#000;background:#fff}#pa h1{font-size:16pt;text-align:center;margin:0}#pa p{text-align:center;margin:2px 0 8px;font-size:10pt}#pa table{font-size:8pt}#pa th{background:#ddd;color:#000}#pa th,#pa td{border:1px solid #000;color:#000}}
+</style></head><body>
+<main>
+<h1>Logbook Kendaraan Pesantren</h1>
+<p class="sub">Catat pemakaian, kondisi, servis, dan pengingat untuk dua kendaraan.</p>
+<div class="tabs" id="tabs"></div>
+<div id="alerts"></div>
+<div class="card"><div class="stats" id="stats"></div></div>
+
+<div class="card"><h2>Pengingat</h2>
+<button class="p" id="btnWarm">Mesin sudah dipanaskan hari ini</button>
+<button class="s" id="btnNotif">Aktifkan notifikasi</button>
+<p class="sub" style="margin-top:10px">Notifikasi hanya muncul saat aplikasi dibuka. Buka aplikasi secara rutin agar pengingat terlihat.</p></div>
+
+<details class="card" open><summary>Catat pemakaian baru</summary>
+<form id="fTrip" onsubmit="return false">
+<div class="g2"><div><label>Tanggal berangkat</label><input type="date" id="tDate" required></div><div><label>Jam berangkat</label><input type="time" id="tOut"></div></div>
+<div class="g2"><div><label>Tanggal kembali</label><input type="date" id="tRet"></div><div><label>Jam kembali</label><input type="time" id="tIn"></div></div>
+<label>Nama driver</label><input id="tDrv" required>
+<label>Tujuan keberangkatan</label><input id="tDst" required>
+<div class="g2"><div><label>KM awal</label><input type="number" id="tKs" required></div><div><label>KM akhir (isi saat kembali)</label><input type="number" id="tKe"></div></div>
+<div class="g2"><div><label>BBM awal</label><select id="tFs"></select></div><div><label>BBM akhir</label><select id="tFe"></select></div></div>
+<label>Bagian yang lecet atau rusak</label>
+<div class="chk" id="tCond"></div>
+<label>Keterangan kondisi fisik</label><input id="tNote" placeholder="Contoh: lecet kecil di pintu kiri">
+<label>Catatan insiden (jika ada)</label><textarea id="tInc" rows="2" placeholder="Kosongkan jika tidak ada"></textarea>
+<button class="p" id="btnTrip">Simpan pemakaian</button><button class="s" id="btnClear">Kosongkan form</button>
+</form></div>
+
+<details class="card"><summary>Catat servis atau ganti oli</summary>
+<div class="g2"><div><label>Jenis</label><select id="sType"><option>Ganti oli</option><option>Servis lain</option></select></div><div><label>Tanggal</label><input type="date" id="sDate"></div></div>
+<label>KM saat servis</label><input type="number" id="sKm">
+<label>Keterangan</label><input id="sNote" placeholder="Contoh: oli mesin 6 liter, filter oli">
+<button class="p" id="btnServ">Simpan servis</button></details>
+
+<details class="card"><summary>Pengaturan kendaraan</summary>
+<label>Nama kendaraan</label><input id="cName"><label>Nomor polisi</label><input id="cPlat">
+<div class="g2"><div><label>Ganti oli tiap (KM)</label><input type="number" id="cOilKm"></div><div><label>Ganti oli tiap (bulan)</label><input type="number" id="cOilMo"></div></div>
+<label>Panaskan mesin tiap (hari)</label><input type="number" id="cWarm">
+<button class="p" id="btnSet">Simpan pengaturan</button>
+<hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+<label>Cadangan data (data tersimpan di browser HP ini)</label>
+<button class="s" id="btnBak">Unduh cadangan</button><button class="s" id="btnRes">Pulihkan dari cadangan</button>
+<input type="file" id="fRes" accept=".json" hidden></details>
+
+<div class="card"><h2>Riwayat dan cetak</h2>
+<div class="g2"><div><label>Dari tanggal</label><input type="date" id="rFrom"></div><div><label>Sampai tanggal</label><input type="date" id="rTo"></div></div>
+<button class="p" id="btnPdf">Cetak / simpan PDF</button><button class="s" id="btnXls">Unduh Excel</button>
+<div class="scroll" style="margin-top:12px"><table id="hist"></table></div>
+<h2 style="margin-top:18px">Riwayat servis</h2><div class="scroll"><table id="servT"></table></div></div>
+</main>
+<div id="pa"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const FUEL=['Penuh','3/4','1/2','1/4','Hampir habis'];
+const PARTS=['Depan','Belakang','Kiri','Kanan','Atap','Kaca','Ban','Interior'];
+const HARI=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+const BLN=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+const mk=(name,plat)=>({name,plat,trips:[],serv:[],warm:[],oilKm:5000,oilMo:6,warmDays:3});
+let S;try{S=JSON.parse(localStorage.getItem('logbook-pesantren'))}catch(e){}
+if(!S||!S.v)S={cur:'a',v:{a:mk('Micro Minibus','BL 7103 LT'),b:mk('L300','')}};
+let cur=S.cur||'a';
+const save=()=>{S.cur=cur;try{localStorage.setItem('logbook-pesantren',JSON.stringify(S))}catch(e){alert('Penyimpanan browser penuh atau diblokir.')}};
+const V=()=>S.v[cur];
+const today=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
+const fmt=s=>{if(!s)return'-';const d=new Date(s+'T00:00');return d.getDate()+' '+BLN[d.getMonth()]+' '+d.getFullYear()};
+const hari=s=>s?HARI[new Date(s+'T00:00').getDay()]:'-';
+const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const diffDays=(a,b)=>Math.floor((new Date(b+'T00:00')-new Date(a+'T00:00'))/864e5);
+function dur(t){if(!t.tOut||!t.tIn)return'-';const a=new Date((t.date)+'T'+t.tOut),b=new Date((t.ret||t.date)+'T'+t.tIn);let m=Math.round((b-a)/6e4);if(m<0)return'-';const d=Math.floor(m/1440);m%=1440;return(d?d+' hr ':'')+Math.floor(m/60)+' jam '+m%60+' mnt'}
+function curKm(v){let k=0;v.trips.forEach(t=>{k=Math.max(k,+t.kmE||0,+t.kmS||0)});v.serv.forEach(s=>{k=Math.max(k,+s.km||0)});return k}
+function lastOil(v){return v.serv.filter(s=>s.type==='Ganti oli').sort((a,b)=>b.date.localeCompare(a.date)||b.km-a.km)[0]}
+
+function render(){
+ const v=V();
+ $('tabs').innerHTML=['a','b'].map(k=>`<button class="${k===cur?'on':''}" data-k="${k}">${esc(S.v[k].name)}<br><small>${esc(S.v[k].plat||'isi nopol di pengaturan')}</small></button>`).join('');
+ document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{cur=b.dataset.k;save();render()});
+ const km=curKm(v),lo=lastOil(v),al=[];let oilTxt='Belum ada catatan',nextKm=null;
+ if(lo){nextKm=(+lo.km)+(+v.oilKm);const sisa=nextKm-km;
+  const dd=new Date(lo.date+'T00:00');dd.setMonth(dd.getMonth()+(+v.oilMo));const due=new Date(dd-dd.getTimezoneOffset()*6e4).toISOString().slice(0,10);const hl=diffDays(today(),due);
+  oilTxt=nextKm.toLocaleString('id')+' km / '+fmt(due);
+  if(sisa<=0)al.push(['b','Ganti oli sekarang: sudah melewati batas '+Math.abs(sisa).toLocaleString('id')+' km.']);
+  else if(sisa<=500)al.push(['w','Ganti oli segera: sisa '+sisa+' km.']);
+  if(hl<0)al.push(['b','Ganti oli sekarang: sudah lewat batas waktu '+v.oilMo+' bulan.']);
+  else if(hl<=14)al.push(['w','Batas waktu ganti oli '+hl+' hari lagi ('+fmt(due)+').']);
+ }else al.push(['w','Belum ada catatan ganti oli. Catat ganti oli terakhir agar pengingat aktif.']);
+ const lw=v.warm.slice().sort().pop();let wTxt='Belum pernah';
+ if(lw){const d=diffDays(lw,today());wTxt=d===0?'Hari ini':d+' hari lalu';if(d>=v.warmDays)al.push(['b','Panaskan mesin sekarang: terakhir '+d+' hari lalu (batas '+v.warmDays+' hari).']);else if(d===v.warmDays-1)al.push(['w','Besok jadwal memanaskan mesin.'])}
+ else al.push(['w','Belum ada catatan memanaskan mesin. Tekan tombol di bawah setelah memanaskan.']);
+ const open=v.trips.filter(t=>!t.kmE);if(open.length)al.push(['w',open.length+' pemakaian belum diisi KM akhir.']);
+ if(!al.length)al.push(['g','Semua pengingat aman.']);
+ $('alerts').innerHTML=al.map(a=>`<div class="al ${a[0]}">${esc(a[1])}</div>`).join('');
+ window._al=al.filter(a=>a[0]!=='g');
+ $('stats').innerHTML=`<div class="stat"><b>${km.toLocaleString('id')} km</b><span>KM terakhir</span></div><div class="stat"><b>${esc(oilTxt)}</b><span>Ganti oli berikutnya</span></div><div class="stat"><b>${wTxt}</b><span>Terakhir dipanaskan</span></div><div class="stat"><b>${v.trips.length}</b><span>Total pemakaian</span></div>`;
+ // form defaults
+ $('tDate').value=$('tDate').value||today();$('tRet').value=$('tRet').value||today();
+ if(!$('tKs').value&&km)$('tKs').value=km;
+ if(!$('tFs').options.length){$('tFs').innerHTML=$('tFe').innerHTML=FUEL.map(f=>`<option>${f}</option>`).join('');$('tCond').innerHTML=PARTS.map(p=>`<label><input type="checkbox" value="${p}">${p}</label>`).join('')}
+ $('sDate').value=$('sDate').value||today();
+ $('cName').value=v.name;$('cPlat').value=v.plat;$('cOilKm').value=v.oilKm;$('cOilMo').value=v.oilMo;$('cWarm').value=v.warmDays;
+ const rows=v.trips.slice().sort((a,b)=>b.date.localeCompare(a.date));
+ $('hist').innerHTML='<tr><th>Tanggal</th><th>Driver</th><th>Tujuan</th><th>KM</th><th>Kondisi / insiden</th><th></th></tr>'+(rows.map(t=>`<tr><td>${hari(t.date)}, ${fmt(t.date)}<br>${esc(dur(t))}</td><td>${esc(t.driver)}</td><td>${esc(t.dest)}</td><td>${t.kmS} → ${t.kmE||'<b>belum diisi</b>'}${t.kmE?'<br>'+(t.kmE-t.kmS)+' km':''}</td><td>BBM ${esc(t.fS)} → ${esc(t.fE)}<br>${esc((t.cond||[]).join(', '))} ${esc(t.note)}${t.inc?'<br><b>Insiden:</b> '+esc(t.inc):''}</td><td>${t.kmE?'':`<button class="s" style="margin:0 0 4px" data-e="${t.id}">Isi akhir</button>`}<button class="d" data-x="${t.id}">Hapus</button></td></tr>`).join('')||'<tr><td colspan="6">Belum ada pemakaian. Isi formulir di atas.</td></tr>');
+ $('servT').innerHTML='<tr><th>Tanggal</th><th>Jenis</th><th>KM</th><th>Keterangan</th><th></th></tr>'+(v.serv.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(s=>`<tr><td>${fmt(s.date)}</td><td>${esc(s.type)}</td><td>${s.km}</td><td>${esc(s.note)}</td><td><button class="d" data-s="${s.id}">Hapus</button></td></tr>`).join('')||'<tr><td colspan="5">Belum ada servis tercatat.</td></tr>');
+ document.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>{if(confirm('Hapus catatan pemakaian ini?')){v.trips=v.trips.filter(t=>t.id!=b.dataset.x);save();render()}});
+ document.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{if(confirm('Hapus catatan servis ini?')){v.serv=v.serv.filter(t=>t.id!=b.dataset.s);save();render()}});
+ document.querySelectorAll('[data-e]').forEach(b=>b.onclick=()=>{const t=v.trips.find(t=>t.id==b.dataset.e);const k=prompt('KM akhir untuk perjalanan ke '+t.dest+' (KM awal '+t.kmS+'):');if(k===null)return;if(+k<t.kmS){alert('KM akhir tidak boleh lebih kecil dari KM awal.');return}t.kmE=+k;const f=prompt('BBM akhir: '+FUEL.join(' / '),t.fE);if(f)t.fE=f;if(!t.tIn){t.tIn=prompt('Jam kembali (contoh 17:30), boleh kosong')||''}save();$('tKs').value='';render()});
+}
+$('btnTrip').onclick=()=>{
+ if(!$('fTrip').reportValidity())return;const v=V();const ks=+$('tKs').value,ke=$('tKe').value;
+ if(ke&&+ke<ks){alert('KM akhir tidak boleh lebih kecil dari KM awal.');return}
+ v.trips.push({id:Date.now(),date:$('tDate').value,ret:$('tRet').value,tOut:$('tOut').value,tIn:$('tIn').value,driver:$('tDrv').value.trim(),dest:$('tDst').value.trim(),kmS:ks,kmE:ke?+ke:'',fS:$('tFs').value,fE:$('tFe').value,cond:[...document.querySelectorAll('#tCond input:checked')].map(c=>c.value),note:$('tNote').value.trim(),inc:$('tInc').value.trim()});
+ save();clr();render();alert('Pemakaian tersimpan.')};
+function clr(){['tOut','tIn','tDrv','tDst','tKs','tKe','tNote','tInc'].forEach(i=>$(i).value='');document.querySelectorAll('#tCond input').forEach(c=>c.checked=false)}
+$('btnClear').onclick=()=>{clr();render()};
+$('btnServ').onclick=()=>{if(!$('sKm').value||!$('sDate').value){alert('Isi tanggal dan KM servis.');return}V().serv.push({id:Date.now(),type:$('sType').value,date:$('sDate').value,km:+$('sKm').value,note:$('sNote').value.trim()});$('sKm').value=$('sNote').value='';save();render()};
+$('btnWarm').onclick=()=>{const v=V();if(!v.warm.includes(today()))v.warm.push(today());save();render()};
+$('btnSet').onclick=()=>{const v=V();v.name=$('cName').value.trim()||v.name;v.plat=$('cPlat').value.trim();v.oilKm=+$('cOilKm').value||5000;v.oilMo=+$('cOilMo').value||6;v.warmDays=+$('cWarm').value||3;save();render()};
+$('btnNotif').onclick=()=>{if(!('Notification' in window)){alert('Browser ini tidak mendukung notifikasi.');return}Notification.requestPermission().then(p=>{if(p==='granted')notify();else alert('Notifikasi tidak diizinkan.')})};
+function notify(){if('Notification' in window&&Notification.permission==='granted'&&window._al&&window._al.length)try{new Notification(V().name+' '+V().plat,{body:window._al.map(a=>a[1]).join('\n')})}catch(e){}}
+$('btnBak').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));a.download='cadangan-logbook-'+today()+'.json';a.click()};
+$('btnRes').onclick=()=>$('fRes').click();
+$('fRes').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);if(!d.v||!d.v.a||!d.v.b)throw 0;if(confirm('Ganti semua data di HP ini dengan cadangan?')){S=d;cur=S.cur||'a';save();render()}}catch(x){alert('File cadangan tidak valid.')}})};
+
+function printTable(){
+ const v=V(),f=$('rFrom').value,t=$('rTo').value;
+ const rows=v.trips.filter(x=>(!f||x.date>=f)&&(!t||x.date<=t)).sort((a,b)=>a.date.localeCompare(b.date)||a.id-b.id);
+ const head=['No','Hari','Tanggal','Driver','Tujuan','Jam Berangkat','Jam Kembali','Lama Pakai','KM Awal','KM Akhir','Jarak (km)','BBM Awal','BBM Akhir','Kondisi Fisik','Catatan / Insiden','Paraf'];
+ let h='<table><tr>'+head.map(x=>'<th>'+x+'</th>').join('')+'</tr>';
+ const n=Math.max(rows.length,10);
+ for(let i=0;i<n;i++){const r=rows[i];h+=r?`<tr><td>${i+1}</td><td>${hari(r.date)}</td><td>${fmt(r.date)}</td><td>${esc(r.driver)}</td><td>${esc(r.dest)}</td><td>${r.tOut||''}</td><td>${r.tIn||''}</td><td>${dur(r)==='-'?'':dur(r)}</td><td>${r.kmS}</td><td>${r.kmE}</td><td>${r.kmE?r.kmE-r.kmS:''}</td><td>${esc(r.fS)}</td><td>${esc(r.fE)}</td><td>${esc((r.cond||[]).join(', ')+' '+r.note)}</td><td>${esc(r.inc)}</td><td></td></tr>`:'<tr>'+'<td>&nbsp;</td>'.repeat(16)+'</tr>'}
+ return{h:h+'</table>',title:'CATATAN PENGGUNAAN KENDARAAN '+v.name.toUpperCase()+(v.plat?' - '+v.plat:''),per:(f||t)?'Periode: '+fmt(f)+' s/d '+fmt(t):'Semua periode'}}
+$('btnPdf').onclick=()=>{const p=printTable();$('pa').innerHTML=`<h1>${esc(p.title)}</h1><p>${esc(p.per)}</p>`+p.h+'<p style="text-align:left;margin-top:14px">Penanggung jawab: ____________________</p>';document.body.classList.add('pr');setTimeout(()=>window.print(),100)};
+window.onafterprint=()=>document.body.classList.remove('pr');
+$('btnXls').onclick=()=>{const p=printTable();const html='<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"></head><body><h3>'+esc(p.title)+'</h3><p>'+esc(p.per)+'</p>'+p.h.replace('<table>','<table border="1">')+'</body></html>';const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+html],{type:'application/vnd.ms-excel'}));a.download='logbook-'+(V().plat||V().name).replace(/\s+/g,'-')+'-'+today()+'.xls';a.click()};
+render();notify();
+</script></body></html>
