@@ -26,6 +26,7 @@ button.p,button.s,button.d{padding:11px 16px;border-radius:8px;border:0;font-wei
 button.p{background:var(--pri);color:var(--bg)}button.s{background:var(--pri2);color:var(--pri)}button.d{background:var(--badbg);color:var(--bad);padding:6px 10px;margin:0}
 .scroll{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:.85rem}th,td{border:1px solid var(--line);padding:6px;text-align:left;vertical-align:top}th{background:var(--pri2)}
 summary{font-weight:600;cursor:pointer;padding:4px 0}
+.ck{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;margin:6px 0;color:var(--ink);font-size:1rem}.ck input{width:24px;height:24px;flex:none;accent-color:var(--pri)}.ck.on{background:var(--okbg);border-color:var(--ok)}
 #pa{display:none}
 @media print{@page{size:A4 landscape;margin:10mm}body.pr main{display:none}body.pr #pa{display:block;color:#000;background:#fff}#pa h1{font-size:16pt;text-align:center;margin:0}#pa p{text-align:center;margin:2px 0 8px;font-size:10pt}#pa table{font-size:8pt}#pa th{background:#ddd;color:#000}#pa th,#pa td{border:1px solid #000;color:#000}}
 </style></head><body>
@@ -36,8 +37,14 @@ summary{font-weight:600;cursor:pointer;padding:4px 0}
 <div id="alerts"></div>
 <div class="card"><div class="stats" id="stats"></div></div>
 
-<div class="card"><h2>Pengingat</h2>
-<button class="p" id="btnWarm">Mesin sudah dipanaskan hari ini</button>
+<div class="card"><h2>Pengingat dan catatan</h2>
+<label>Mesin dipanaskan (centang tiap hari setelah selesai)</label>
+<div id="warmHist"></div>
+<hr style="border:0;border-top:1px solid var(--line);margin:14px 0">
+<label>Ganti oli</label>
+<div id="oilInfo" class="al w"></div>
+<div class="g2"><div><label>Tanggal ganti oli</label><input type="date" id="oDate"></div><div><label>KM saat ganti oli</label><input type="number" id="oKm"></div></div>
+<button class="p" id="btnOil">Simpan ganti oli</button>
 <button class="s" id="btnNotif">Aktifkan notifikasi</button>
 <p class="sub" style="margin-top:10px">Notifikasi hanya muncul saat aplikasi dibuka. Buka aplikasi secara rutin agar pengingat terlihat.</p></div>
 
@@ -105,10 +112,10 @@ function render(){
  const v=V();
  $('tabs').innerHTML=['a','b'].map(k=>`<button class="${k===cur?'on':''}" data-k="${k}">${esc(S.v[k].name)}<br><small>${esc(S.v[k].plat||'isi nopol di pengaturan')}</small></button>`).join('');
  document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{cur=b.dataset.k;save();render()});
- const km=curKm(v),lo=lastOil(v),al=[];let oilTxt='Belum ada catatan',nextKm=null;
+ const km=curKm(v),lo=lastOil(v),al=[];let oilTxt='Belum ada catatan',nextKm=null;window._oi='Belum ada catatan ganti oli. Isi tanggal dan KM ganti oli terakhir di bawah, lalu tekan Simpan ganti oli.';
  if(lo){nextKm=(+lo.km)+(+v.oilKm);const sisa=nextKm-km;
   const dd=new Date(lo.date+'T00:00');dd.setMonth(dd.getMonth()+(+v.oilMo));const due=new Date(dd-dd.getTimezoneOffset()*6e4).toISOString().slice(0,10);const hl=diffDays(today(),due);
-  oilTxt=nextKm.toLocaleString('id')+' km / '+fmt(due);
+  oilTxt=nextKm.toLocaleString('id')+' km / '+fmt(due);window._oi='Terakhir ganti oli: '+fmt(lo.date)+' pada '+(+lo.km).toLocaleString('id')+' km. Ganti berikutnya: '+nextKm.toLocaleString('id')+' km atau '+fmt(due)+' (mana yang lebih dulu). Sisa '+Math.max(sisa,0).toLocaleString('id')+' km.';
   if(sisa<=0)al.push(['b','Ganti oli sekarang: sudah melewati batas '+Math.abs(sisa).toLocaleString('id')+' km.']);
   else if(sisa<=500)al.push(['w','Ganti oli segera: sisa '+sisa+' km.']);
   if(hl<0)al.push(['b','Ganti oli sekarang: sudah lewat batas waktu '+v.oilMo+' bulan.']);
@@ -121,6 +128,12 @@ function render(){
  if(!al.length)al.push(['g','Semua pengingat aman.']);
  $('alerts').innerHTML=al.map(a=>`<div class="al ${a[0]}">${esc(a[1])}</div>`).join('');
  window._al=al.filter(a=>a[0]!=='g');
+ const dstr=i=>{const d=new Date();d.setDate(d.getDate()-i);return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
+ let wh='';for(let i=0;i<7;i++){const d=dstr(i),on=v.warm.includes(d);wh+=`<label class="ck ${on?'on':''}"><input type="checkbox" data-w="${d}" ${on?'checked':''}>${i===0?'Hari ini':hari(d)} (${fmt(d)}): mesin sudah dipanaskan</label>`}
+ $('warmHist').innerHTML=wh;
+ document.querySelectorAll('[data-w]').forEach(c=>c.onchange=()=>{const d=c.dataset.w;if(c.checked){if(!v.warm.includes(d))v.warm.push(d)}else v.warm=v.warm.filter(x=>x!==d);save();render()});
+ $('oilInfo').textContent=window._oi;
+ $('oDate').value=$('oDate').value||today();if(!$('oKm').value&&km)$('oKm').value=km;
  $('stats').innerHTML=`<div class="stat"><b>${km.toLocaleString('id')} km</b><span>KM terakhir</span></div><div class="stat"><b>${esc(oilTxt)}</b><span>Ganti oli berikutnya</span></div><div class="stat"><b>${wTxt}</b><span>Terakhir dipanaskan</span></div><div class="stat"><b>${v.trips.length}</b><span>Total pemakaian</span></div>`;
  // form defaults
  $('tDate').value=$('tDate').value||today();$('tRet').value=$('tRet').value||today();
@@ -143,7 +156,7 @@ $('btnTrip').onclick=()=>{
 function clr(){['tOut','tIn','tDrv','tDst','tKs','tKe','tNote','tInc'].forEach(i=>$(i).value='');document.querySelectorAll('#tCond input').forEach(c=>c.checked=false)}
 $('btnClear').onclick=()=>{clr();render()};
 $('btnServ').onclick=()=>{if(!$('sKm').value||!$('sDate').value){alert('Isi tanggal dan KM servis.');return}V().serv.push({id:Date.now(),type:$('sType').value,date:$('sDate').value,km:+$('sKm').value,note:$('sNote').value.trim()});$('sKm').value=$('sNote').value='';save();render()};
-$('btnWarm').onclick=()=>{const v=V();if(!v.warm.includes(today()))v.warm.push(today());save();render()};
+$('btnOil').onclick=()=>{if(!$('oKm').value||!$('oDate').value){alert('Isi tanggal dan KM ganti oli.');return}V().serv.push({id:Date.now(),type:'Ganti oli',date:$('oDate').value,km:+$('oKm').value,note:''});$('oKm').value='';save();render();alert('Ganti oli tersimpan.')};
 $('btnSet').onclick=()=>{const v=V();v.name=$('cName').value.trim()||v.name;v.plat=$('cPlat').value.trim();v.oilKm=+$('cOilKm').value||5000;v.oilMo=+$('cOilMo').value||6;v.warmDays=+$('cWarm').value||3;save();render()};
 $('btnNotif').onclick=()=>{if(!('Notification' in window)){alert('Browser ini tidak mendukung notifikasi.');return}Notification.requestPermission().then(p=>{if(p==='granted')notify();else alert('Notifikasi tidak diizinkan.')})};
 function notify(){if('Notification' in window&&Notification.permission==='granted'&&window._al&&window._al.length)try{new Notification(V().name+' '+V().plat,{body:window._al.map(a=>a[1]).join('\n')})}catch(e){}}
@@ -163,4 +176,8 @@ $('btnPdf').onclick=()=>{const p=printTable();$('pa').innerHTML=`<h1>${esc(p.tit
 window.onafterprint=()=>document.body.classList.remove('pr');
 $('btnXls').onclick=()=>{const p=printTable();const html='<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"></head><body><h3>'+esc(p.title)+'</h3><p>'+esc(p.per)+'</p>'+p.h.replace('<table>','<table border="1">')+'</body></html>';const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+html],{type:'application/vnd.ms-excel'}));a.download='logbook-'+(V().plat||V().name).replace(/\s+/g,'-')+'-'+today()+'.xls';a.click()};
 render();notify();
+let _day=today();
+function newDay(){if(today()!==_day){_day=today();['tDate','tRet','sDate','oDate'].forEach(i=>$(i).value=today());render()}}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)newDay()});
+setInterval(newDay,60000);
 </script></body></html>
