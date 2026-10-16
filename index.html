@@ -27,6 +27,7 @@ button.p{background:var(--pri);color:var(--bg)}button.s{background:var(--pri2);c
 .scroll{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:.85rem}th,td{border:1px solid var(--line);padding:6px;text-align:left;vertical-align:top}th{background:var(--pri2)}
 summary{font-weight:600;cursor:pointer;padding:4px 0}
 .ck{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;margin:6px 0;color:var(--ink);font-size:1rem}.ck input{width:24px;height:24px;flex:none;accent-color:var(--pri)}.ck.on{background:var(--okbg);border-color:var(--ok)}
+.wg{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px}.wg div,.wg label{text-align:center;font-size:.8rem;border-radius:6px;padding:4px 0;color:var(--mute)}.wg label{display:flex;flex-direction:column;align-items:center;gap:2px;margin:0;border:1px solid var(--line);color:var(--ink)}.wg label.on{background:var(--okbg);border-color:var(--ok)}.wg input{width:20px;height:20px;accent-color:var(--pri)}
 #pa{display:none}
 @media print{@page{size:A4 landscape;margin:10mm}body.pr main{display:none}body.pr #pa{display:block;color:#000;background:#fff}#pa h1{font-size:16pt;text-align:center;margin:0}#pa p{text-align:center;margin:2px 0 8px;font-size:10pt}#pa table{font-size:8pt}#pa th{background:#ddd;color:#000}#pa th,#pa td{border:1px solid #000;color:#000}}
 </style></head><body>
@@ -40,6 +41,9 @@ summary{font-weight:600;cursor:pointer;padding:4px 0}
 <div class="card"><h2>Pengingat dan catatan</h2>
 <label>Mesin dipanaskan (centang tiap hari setelah selesai)</label>
 <div id="warmHist"></div>
+<details style="margin-top:8px"><summary>Lihat dan centang satu bulan penuh</summary>
+<label>Pilih bulan</label><input type="month" id="wMon"><div id="wGrid" class="wg"></div>
+<p class="sub">Hijau berarti mesin sudah dipanaskan. Hari yang belum tiba tidak bisa dicentang.</p></details>
 <hr style="border:0;border-top:1px solid var(--line);margin:14px 0">
 <label>Ganti oli</label>
 <div id="oilInfo" class="al w"></div>
@@ -132,6 +136,13 @@ function render(){
  let wh='';for(let i=0;i<7;i++){const d=dstr(i),on=v.warm.includes(d);wh+=`<label class="ck ${on?'on':''}"><input type="checkbox" data-w="${d}" ${on?'checked':''}>${i===0?'Hari ini':hari(d)} (${fmt(d)}): mesin sudah dipanaskan</label>`}
  $('warmHist').innerHTML=wh;
  document.querySelectorAll('[data-w]').forEach(c=>c.onchange=()=>{const d=c.dataset.w;if(c.checked){if(!v.warm.includes(d))v.warm.push(d)}else v.warm=v.warm.filter(x=>x!==d);save();render()});
+
+ if(!$('wMon').value)$('wMon').value=today().slice(0,7);
+ {const[y,m]=$('wMon').value.split('-').map(Number),n=new Date(y,m,0).getDate(),f=new Date(y,m-1,1).getDay();
+  let g=['Min','Sen','Sel','Rab','Kam','Jum','Sab'].map(x=>`<div>${x}</div>`).join('')+'<div></div>'.repeat(f);
+  for(let d=1;d<=n;d++){const k=$('wMon').value+'-'+String(d).padStart(2,'0'),on=v.warm.includes(k);g+=`<label class="${on?'on':''}">${d}<input type="checkbox" data-w="${k}" ${on?'checked':''} ${k>today()?'disabled':''}></label>`}
+  $('wGrid').innerHTML=g}
+ document.querySelectorAll('[data-w]').forEach(c=>c.onchange=()=>{const d=c.dataset.w;if(c.checked){if(!v.warm.includes(d))v.warm.push(d)}else v.warm=v.warm.filter(x=>x!==d);save();render()});
  $('oilInfo').textContent=window._oi;
  $('oDate').value=$('oDate').value||today();if(!$('oKm').value&&km)$('oKm').value=km;
  $('stats').innerHTML=`<div class="stat"><b>${km.toLocaleString('id')} km</b><span>KM terakhir</span></div><div class="stat"><b>${esc(oilTxt)}</b><span>Ganti oli berikutnya</span></div><div class="stat"><b>${wTxt}</b><span>Terakhir dipanaskan</span></div><div class="stat"><b>${v.trips.length}</b><span>Total pemakaian</span></div>`;
@@ -160,6 +171,7 @@ $('btnOil').onclick=()=>{if(!$('oKm').value||!$('oDate').value){alert('Isi tangg
 $('btnSet').onclick=()=>{const v=V();v.name=$('cName').value.trim()||v.name;v.plat=$('cPlat').value.trim();v.oilKm=+$('cOilKm').value||5000;v.oilMo=+$('cOilMo').value||6;v.warmDays=+$('cWarm').value||3;save();render()};
 $('btnNotif').onclick=()=>{if(!('Notification' in window)){alert('Browser ini tidak mendukung notifikasi.');return}Notification.requestPermission().then(p=>{if(p==='granted')notify();else alert('Notifikasi tidak diizinkan.')})};
 function notify(){if('Notification' in window&&Notification.permission==='granted'&&window._al&&window._al.length)try{new Notification(V().name+' '+V().plat,{body:window._al.map(a=>a[1]).join('\n')})}catch(e){}}
+$('wMon').onchange=render;
 $('btnBak').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));a.download='cadangan-logbook-'+today()+'.json';a.click()};
 $('btnRes').onclick=()=>$('fRes').click();
 $('fRes').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);if(!d.v||!d.v.a||!d.v.b)throw 0;if(confirm('Ganti semua data di HP ini dengan cadangan?')){S=d;cur=S.cur||'a';save();render()}}catch(x){alert('File cadangan tidak valid.')}})};
